@@ -54,8 +54,7 @@ function startTest() {
 
     var video = document.createElement("video");
     video.id = "recorded-video";
-    console.log("xhr.response type:" + xhr.response.type + ", xhr.response size:" + xhr.response.size);
-    video.src = URL.createObjectURL(xhr.response);
+    video.src = URL.createObjectURL(blob);
     video.play();
     video.onerror = err => {
       ok(false, "Should be able to play the recording. Got error. code=" + video.error.code);
