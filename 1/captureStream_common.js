@@ -4,6 +4,16 @@
 
 "use strict";
 
+var ok = function(a, b) {
+  if (!a) {
+    console.log(b);
+  }
+}
+
+var info = function(msg) {
+  console.log(msg);
+}
+
 var is = function(a, b, name) {
   // Be lazy and use Object.is til we want to test a browser without it.
   var pass = Object.is(a, b);
@@ -58,7 +68,7 @@ CaptureStreamTestHelper.prototype = {
 
   /* Request a frame from the stream played by |video|. */
   requestFrame: function (video) {
-    // info("Requesting frame from " + video.id);
+    info("Requesting frame from " + video.id);
     video.srcObject.requestFrame();
   },
 
@@ -129,7 +139,7 @@ CaptureStreamTestHelper.prototype = {
         try {
             pixelMatch = test(this.getPixel(video, offsetX, offsetY, width, height));
         } catch (e) {
-          // info("Waiting for pixel but no video available: " + e + "\n" + e.stack);
+          info("Waiting for pixel but no video available: " + e + "\n" + e.stack);
         }
         if (!pixelMatch &&
             (!timeout || video.currentTime < startTime + (timeout / 1000.0))) {
@@ -150,9 +160,9 @@ CaptureStreamTestHelper.prototype = {
    * channel, in the range [0,255].
    */
   waitForPixelColor: function (video, refColor, threshold, infoString) {
-    // info("Waiting for video " + video.id + " to match [" +
-    //      refColor.data.join(',') + "] - " + refColor.name +
-    //      " (" + infoString + ")");
+    info("Waiting for video " + video.id + " to match [" +
+         refColor.data.join(',') + "] - " + refColor.name +
+         " (" + infoString + ")");
     return this.waitForPixel(video, 0, 0,
                              px => this.isPixel(px, refColor, threshold))
       .then(() => ok(true, video.id + " " + infoString));
@@ -164,8 +174,8 @@ CaptureStreamTestHelper.prototype = {
    * timeout is not reached.
    */
   waitForPixelColorTimeout: function (video, refColor, threshold, timeout, infoString) {
-    // info("Waiting for " + video.id + " to time out after " + timeout +
-    //      "ms against [" + refColor.data.join(',') + "] - " + refColor.name);
+    info("Waiting for " + video.id + " to time out after " + timeout +
+         "ms against [" + refColor.data.join(',') + "] - " + refColor.name);
     return this.waitForPixel(video, 0, 0,
                              px => this.isPixel(px, refColor, threshold),
                              timeout)
@@ -205,7 +215,7 @@ CaptureStreamTestHelper2D.prototype.drawColor = function(canvas, color) {
   var ctx = canvas.getContext('2d');
   var rgba = color.data.slice(); // Copy to not overwrite the original array
   rgba[3] = rgba[3] / 255.0; // Convert opacity to double in range [0,1]
-  // info("Drawing color " + rgba.join(','));
+  info("Drawing color " + rgba.join(','));
   ctx.fillStyle = "rgba(" + rgba.join(',') + ")";
 
   // Only fill top left corner to test that output is not flipped or rotated.
@@ -240,7 +250,7 @@ CaptureStreamTestHelperWebGL.prototype.setFragmentColorLocation = function(color
 
 /* Clear the given WebGL context with |color|. */
 CaptureStreamTestHelperWebGL.prototype.clearColor = function(canvas, color) {
-  // info("WebGL: clearColor(" + color.name + ")");
+  info("WebGL: clearColor(" + color.name + ")");
   var gl = canvas.getContext('webgl');
   var conv = color.data.map(i => i / 255.0);
   gl.clearColor(conv[0], conv[1], conv[2], conv[3]);
@@ -249,7 +259,7 @@ CaptureStreamTestHelperWebGL.prototype.clearColor = function(canvas, color) {
 
 /* Set an already setFragmentColorLocation() to |color| and drawArrays() */
 CaptureStreamTestHelperWebGL.prototype.drawColor = function(canvas, color) {
-  // info("WebGL: drawArrays(" + color.name + ")");
+  info("WebGL: drawArrays(" + color.name + ")");
   var gl = canvas.getContext('webgl');
   var conv = color.data.map(i => i / 255.0);
   gl.uniform4f(this.colorLocation, conv[0], conv[1], conv[2], conv[3]);

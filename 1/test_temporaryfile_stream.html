@@ -2,9 +2,9 @@
 <html>
 <head>
   <title>Send an nsTemporaryFileInputStream cross-process</title>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="/tests/dom/canvas/test/captureStream_common.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <!-- <script src="/tests/SimpleTest/SimpleTest.js"></script> -->
+  <script src="captureStream_common.js"></script>
+  <!-- <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" /> -->
 </head>
 <body>
 <pre id="test">
@@ -62,15 +62,16 @@ function startTest() {
       video.play();
       video.onerror = err => {
         ok(false, "Should be able to play the recording. Got error. code=" + video.error.code);
-        SimpleTest.finish();
+        // SimpleTest.finish();
       };
       document.getElementById("content").appendChild(video);
       helper.waitForPixelColor(video, helper.red, 128, "Should become red")
-        .then(SimpleTest.finish);
+        .then(() => { console.log(">>>>>>>>>>>>>>> finished !!"); }));
+        // .then(SimpleTest.finish);
     };
     xhr.onerror = () => {
       ok(false, "XHR error");
-      SimpleTest.finish();
+      // SimpleTest.finish();
     }
     xhr.responseType = "blob";
     xhr.send(blob);
@@ -80,8 +81,9 @@ function startTest() {
   is(mediaRecorder.state, "recording", "Media recorder should be recording");
 }
 
-SimpleTest.waitForExplicitFinish();
-SpecialPowers.pushPrefEnv({set:[["media.recorder.max_memory", 1]]}, startTest);
+startTest();
+// SimpleTest.waitForExplicitFinish();
+// SpecialPowers.pushPrefEnv({set:[["media.recorder.max_memory", 1]]}, startTest);
 </script>
 </pre>
 </body>
