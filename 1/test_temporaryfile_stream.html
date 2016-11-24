@@ -52,29 +52,42 @@ function startTest() {
     info("Got 'stop' event");
     ok(blob, "Should have gotten a data blob");
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', 'blob_verify.sjs', true);
-    xhr.onload = () => {
-      var video = document.createElement("video");
-      video.id = "recorded-video";
-      console.log("xhr.response type:" + xhr.response.type + ", xhr.response size:" + xhr.response.size);
-      video.src = URL.createObjectURL(xhr.response);
-      video.play();
-      video.onerror = err => {
-        ok(false, "Should be able to play the recording. Got error. code=" + video.error.code);
-        // SimpleTest.finish();
-      };
-      document.getElementById("content").appendChild(video);
-      helper.waitForPixelColor(video, helper.red, 128, "Should become red")
-        .then(() => { console.log(">>>>>>>>>>>>>>> finished !!"); });
+    var video = document.createElement("video");
+    video.id = "recorded-video";
+    console.log("xhr.response type:" + xhr.response.type + ", xhr.response size:" + xhr.response.size);
+    video.src = URL.createObjectURL(xhr.response);
+    video.play();
+    video.onerror = err => {
+      ok(false, "Should be able to play the recording. Got error. code=" + video.error.code);
+      // SimpleTest.finish();
+    };
+    document.getElementById("content").appendChild(video);
+    helper.waitForPixelColor(video, helper.red, 128, "Should become red")
+      .then(() => { console.log(">>>>>>>>>>>>>>> finished !!"); });
+
+    // var xhr = new XMLHttpRequest();
+    // xhr.open('POST', 'blob_verify.sjs', true);
+    // xhr.onload = () => {
+      // var video = document.createElement("video");
+      // video.id = "recorded-video";
+      // console.log("xhr.response type:" + xhr.response.type + ", xhr.response size:" + xhr.response.size);
+      // video.src = URL.createObjectURL(xhr.response);
+      // video.play();
+      // video.onerror = err => {
+      //   ok(false, "Should be able to play the recording. Got error. code=" + video.error.code);
+      //   // SimpleTest.finish();
+      // };
+      // document.getElementById("content").appendChild(video);
+      // helper.waitForPixelColor(video, helper.red, 128, "Should become red")
+      //   .then(() => { console.log(">>>>>>>>>>>>>>> finished !!"); });
         // .then(SimpleTest.finish);
     };
-    xhr.onerror = () => {
-      ok(false, "XHR error");
-      // SimpleTest.finish();
-    }
-    xhr.responseType = "blob";
-    xhr.send(blob);
+    // xhr.onerror = () => {
+    //   ok(false, "XHR error");
+    //   // SimpleTest.finish();
+    // }
+    // xhr.responseType = "blob";
+    // xhr.send(blob);
   };
 
   mediaRecorder.start();
