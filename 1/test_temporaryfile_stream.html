@@ -66,7 +66,7 @@ function startTest() {
       };
       document.getElementById("content").appendChild(video);
       helper.waitForPixelColor(video, helper.red, 128, "Should become red")
-        .then(() => { console.log(">>>>>>>>>>>>>>> finished !!"); }));
+        .then(() => { console.log(">>>>>>>>>>>>>>> finished !!"); });
         // .then(SimpleTest.finish);
     };
     xhr.onerror = () => {
