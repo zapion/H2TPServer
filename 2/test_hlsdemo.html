@@ -1,0 +1,60 @@
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8/">
+    </head>
+    <body>
+        <div id="player">
+            <video id="hlsplayer" loop="" controls="controls" autoplay="autoplay">
+            </video>
+        </div>
+
+        <p>Apple 4x3 basic stream<span>
+        <button onclick="playTheUrl(this,'https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8')" type="button">Test</button>
+
+        </span></p><p>Apple 16x9 basic stream<span>
+        <button onclick="playTheUrl(this,'https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8')" type="button">Test</button>
+
+        </span></p><p>Apple master playlist advanced (TS)<span>
+        <button onclick="playTheUrl(this,'https://tungsten.aaplimg.com/VOD/bipbop_adv_example_v2/master.m3u8')" type="button">Test</button>
+
+        </span></p><p>Apple master playlist advanced (fMP4)<span>
+        <button onclick="playTheUrl(this,'https://tungsten.aaplimg.com/VOD/bipbop_adv_fmp4_example/master.m3u8')" type="button">Test</button>
+
+        </span></p><p>Apple TS media playlist<span>
+        <button onclick="playTheUrl(this,'https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/gear1/prog_index.m3u8')" type="button">Test</button>
+
+        </span></p><p>Apple AAC media playlist<span>
+        <button onclick="playTheUrl(this,'https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/gear0/prog_index.m3u8')" type="button">Test</button>
+
+        </span></p><p> Apple ID3 metadata<span>
+        <button onclick="playTheUrl(this,'http://devimages.apple.com/samplecode/adDemo/ad.m3u8')" type="button">Test</button>
+
+        </span></p>
+        <p>Can my browser play HLS(audio/x-mpegurl) videos? <span>
+        <button onclick="supportType(event,'audio/x-mpegurl','xxx, yyy')" type="button">Test</button>
+        </span></p>
+        <p>Can my browser play HLS(application/vnd.apple.mpegurl) videos? <span>
+        <button onclick="supportType(event,'application/vnd.apple.mpegurl','xxx, yyy')" type="button">Test</button>
+        </span></p>
+        <p>Can my browser play HLS(application/x-mpegurl) videos? <span>
+        <button onclick="supportType(event,'application/x-mpegurl','xxx, yyy')" type="button">Test</button>
+        </span></p>
+    
+    <script>
+
+    function playTheUrl(e, url) {
+      document.getElementById("hlsplayer").src = url;
+    }
+
+    function supportType(e,vidType,codType) {
+        var vid = document.createElement('video');
+        // Chrome on Android, can only pass mimetype without codec, and audio/x-mpegurl says no but can be played.....
+        isSupp = vid.canPlayType(vidType+';codecs="'+codType+'"');
+        //isSupp = vid.canPlayType(vidType);
+        if (isSupp == "") {
+            isSupp = "No";
+        }
+        e.target.parentNode.innerHTML = "Answer: " + isSupp;
+    }
+    </script>
+</body></html>
