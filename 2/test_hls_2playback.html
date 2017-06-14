@@ -4,24 +4,24 @@
     </head>
     <body>
         <div id='player'>
-            <video id='hlsplayer' controls autoplay>
+            <video id='hlsplayer43' controls autoplay>
             </video>
         </div>
+        <p>Apple 4x3 basic stream<span>
         <span>
         <div height = 10>
         <span>
         <div id='player2'>
-            <video id='hlsplayer2' controls autoplay>
+            <video id='hlsplayer169' controls autoplay>
             </video>
         </div>
-        <p>Apple master playlist advanced (TS)<span>
-        <p>Apple master playlist advanced (fMP4)<span>
+        <p>Apple 16x9 basic stream<span>
         <button onclick="playTheUrl()" type="button">Test</button>
     </body>
     <script>
     function playTheUrl() {
-      document.getElementById("hlsplayer").src = 'https://tungsten.aaplimg.com/VOD/bipbop_adv_example_v2/master.m3u8';
-      document.getElementById("hlsplayer2").src = 'https://tungsten.aaplimg.com/VOD/bipbop_adv_fmp4_example/master.m3u8';
+      document.getElementById("hlsplayer43").src = 'https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8';
+      document.getElementById("hlsplayer169").src = 'https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8';
     }
     </script>
 </html>
