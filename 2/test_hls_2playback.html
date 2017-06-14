@@ -7,6 +7,7 @@
             <video id='hlsplayer' controls autoplay>
             </video>
         </div>
+        <span>
         <div id='player2'>
             <video id='hlsplayer2' controls autoplay>
             </video>
@@ -16,11 +17,9 @@
         <button onclick="playTheUrl()" type="button">Test</button>
     </body>
     <script>
-
     function playTheUrl() {
       document.getElementById("hlsplayer").src = 'https://tungsten.aaplimg.com/VOD/bipbop_adv_example_v2/master.m3u8';
-      document.getElementById("hlsplayer2").src = 'https://tungsten.aaplimg.com/VOD/bipbop_adv_fmp4_example/master.m3u8';
+    //   document.getElementById("hlsplayer2").src = 'https://tungsten.aaplimg.com/VOD/bipbop_adv_fmp4_example/master.m3u8';
     }
-
     </script>
 </html>
