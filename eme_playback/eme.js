@@ -27,7 +27,6 @@ function bail(message)
     if (err) {
       info(String(err));
     }
-    // SimpleTest.finish();
   }
 }
 
@@ -321,18 +320,12 @@ function LoadInitData(v, test, token) {
   let p = new EMEPromise;
   let initDataQueue = [];
 
-  // // Call SimpleTest._originalSetTimeout() to bypass the flaky timeout checker.
-  // let timer = SimpleTest._originalSetTimeout.call(window, () => {
-  //   p.reject(`${token} Timed out in waiting for the init data.`);
-  // }, 60000);
-
   function onencrypted(ev) {
     initDataQueue.push(ev);
     Log(token, `got encrypted(${ev.initDataType}, ` +
         `${StringToHex(ArrayBufferToString(ev.initData))}) event.`);
     if (test.sessionCount == initDataQueue.length) {
       p.resolve(initDataQueue);
-      // clearTimeout(timer);
     }
   }
 
@@ -429,7 +422,6 @@ function SetupEMEPref(callback) {
     [ "media.eme.vp9-in-mp4.enabled", true ],
   ];
 
-  // SpecialPowers.pushPrefEnv({ "set" : prefs }, callback);
 }
 
 function fetchWithXHR(uri, onLoadFunction) {
