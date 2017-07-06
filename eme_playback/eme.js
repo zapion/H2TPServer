@@ -121,14 +121,12 @@ function UpdateSessionFunc(test, token, sessionType, resolve, reject) {
       var id64 = msg.kids[i];
       var idHex = Base64ToHex(msg.kids[i]).toLowerCase();
       var key = test.keys[idHex];
-      var base64key = HexToBase64(key);
-      var sanitized_64key = base64key.replace("-", "+");
       if (key) {
         Log(token, "found key " + key + " for key id " + idHex);
         outKeys.push({
           "kty":"oct",
           "kid":id64,
-          "k":sanitized_64key
+          "k":HexToBase64(key)
         });
       } else {
         reject(`${token} couldn't find key for key id ${idHex}`);
