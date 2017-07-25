@@ -12,13 +12,17 @@
 
 function startTest(test, token)
 {
+  console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start ");
   var v = document.getElementById("v");
   var canvas = document.getElementById('c');
   canvas.width = 100;
   canvas.height = 100;
   ctx2d = canvas.getContext('2d');
-  ctx2d.drawImage(v, 0, 0, 100, 100);
-  console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start ");
+  v.addEventListener('timeupdate', () => {
+    console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> drawing");
+    ctx2d.drawImage(v, 0, 0, 100, 100);  
+  });
+
   var p1 = once(v, 'ended', function onended(e) {
     console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> bipbop.mp4 playback ended !!");
   });
