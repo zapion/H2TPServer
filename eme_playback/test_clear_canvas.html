@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test clear canvas </title>
+  <script type="text/javascript" src="manifest.js"></script>
+</head>
+<body>
+<pre id="test">
+<canvas id=c></canvas>
+<video id=v src='bipbop.mp4'>
+<script class="testbody" type="text/javascript">
+
+function startTest(test, token)
+{
+  var v = document.getElementById("v");
+  var canvas = document.getElementById('c');
+  canvas.width = 100;
+  canvas.height = 100;
+  ctx2d = canvas.getContext('2d');
+  ctx2d.drawImage(v, 0, 0, 100, 100);
+  console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start ");
+  var p1 = once(v, 'ended', function onended(e) {
+    console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> bipbop.mp4 playback ended !!");
+  });
+  var p2 = once(v, 'play', function onplay(e) {
+    console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> bipbop is playing .... ");
+  });
+  v.play();
+  Promise.all([p1, p2])
+  .then(() => {})
+  .catch(reason => ok(false, reason));
+}
+
+startTest(gEMETests[0], 'test>>>>');
+
+</script>
+</pre>
+</body>
+</html>

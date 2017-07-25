@@ -1,33 +1,24 @@
 // Test files for Encrypted Media Extensions
 var gEMETests = [
   {
-    name:"audio&video tracks, both with all keys",
+    name:"video-only with 2 keys",
     tracks: [
-      {
-        name:"audio",
-        type:"audio/mp4; codecs=\"mp4a.40.2\"",
-        fragments:[ "bipbop-cenc-audioinit.mp4",
-                    "bipbop-cenc-audio1.m4s",
-                    "bipbop-cenc-audio2.m4s",
-                    "bipbop-cenc-audio3.m4s",
-                  ],
-      },
       {
         name:"video",
         type:"video/mp4; codecs=\"avc1.64000d\"",
         fragments:[ "bipbop-cenc-videoinit.mp4",
                     "bipbop-cenc-video1.m4s",
-                    "bipbop-cenc-video2.m4s",
-                  ],
-      },
+                    // "bipbop-cenc-video2.m4s",
+                  ]
+      }
     ],
     keys: {
       // "keyid" : "key"
       "7e571d037e571d037e571d037e571d03" : "7e5733337e5733337e5733337e573333",
-      "7e571d047e571d047e571d047e571d04" : "7e5744447e5744447e5744447e574444",
+      // "7e571d047e571d047e571d047e571d04" : "7e5744447e5744447e5744447e574444",
     },
     sessionType:"temporary",
-    sessionCount:2,
+    sessionCount:1,
     duration:1.60,
   },
 ];
