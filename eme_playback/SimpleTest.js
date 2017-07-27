@@ -699,340 +699,7 @@ SimpleTest.requestFlakyTimeout = function (reason) {
 
 SimpleTest._pendingWaitForFocusCount = 0;
 
-/**
- * Version of waitForFocus that returns a promise. The Promise will
- * not resolve to the focused window, as it might be a CPOW (and Promises
- * cannot be resolved with CPOWs). If you require the focused window,
- * you should use waitForFocus instead.
- */
-SimpleTest.promiseFocus = function (targetWindow, expectBlankPage)
-{
-    return new Promise(function (resolve, reject) {
-        SimpleTest.waitForFocus(win => {
-            // Just resolve, without passing the window (see bug 1233497)
-            resolve();
-        }, targetWindow, expectBlankPage);
-    });
-}
-
-/**
- * If the page is not yet loaded, waits for the load event. In addition, if
- * the page is not yet focused, focuses and waits for the window to be
- * focused. Calls the callback when completed. If the current page is
- * 'about:blank', then the page is assumed to not yet be loaded. Pass true for
- * expectBlankPage to not make this assumption if you expect a blank page to
- * be present.
- *
- * targetWindow should be specified if it is different than 'window'. The actual
- * focused window may be a descendant of targetWindow.
- *
- * @param callback
- *        function called when load and focus are complete
- * @param targetWindow
- *        optional window to be loaded and focused, defaults to 'window'.
- *        This may also be a <browser> element, in which case the window within
- *        that browser will be focused.
- * @param expectBlankPage
- *        true if targetWindow.location is 'about:blank'. Defaults to false
- */
-SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
-    // A separate method is used that is serialized and passed to the child
-    // process via loadFrameScript. Once the child window is focused, the
-    // child will send the WaitForFocus:ChildFocused notification to the parent.
-    // If a child frame in a child process must be focused, a
-    // WaitForFocus:FocusChild message is then sent to the child to focus that
-    // child. This message is used so that the child frame can be passed to it.
-    function waitForFocusInner(targetWindow, isChildProcess, expectBlankPage)
-    {
-      /* Indicates whether the desired targetWindow has loaded or focused. The
-         finished flag is set when the callback has been called and is used to
-         reject extraneous events from invoking the callback again. */
-      var loaded = false, focused = false, finished = false;
-
-      function info(msg) {
-          if (!isChildProcess) {
-              SimpleTest.info(msg);
-          }
-      }
-
-      function focusedWindow() {
-          if (isChildProcess) {
-              return Components.classes["@mozilla.org/focus-manager;1"].
-                      getService(Components.interfaces.nsIFocusManager).focusedWindow;
-          }
-          return SpecialPowers.focusedWindow();
-      }
-
-      function getHref(aWindow) {
-          return isChildProcess ? aWindow.location.href :
-                                  SpecialPowers.getPrivilegedProps(aWindow, 'location.href');
-      }
-
-      /* Event listener for the load or focus events. It will also be called with
-         event equal to null to check if the page is already focused and loaded. */
-      function focusedOrLoaded(event) {
-          try {
-              if (event) {
-                  if (event.type == "load") {
-                      if (expectBlankPage != (event.target.location == "about:blank")) {
-                          return;
-                      }
-
-                      loaded = true;
-                  } else if (event.type == "focus") {
-                      focused = true;
-                  }
-
-                  event.currentTarget.removeEventListener(event.type, focusedOrLoaded, true);
-              }
-
-              if (loaded && focused && !finished) {
-                  finished = true;
-                  if (isChildProcess) {
-                      sendAsyncMessage("WaitForFocus:ChildFocused", {}, null);
-                  } else {
-                      SimpleTest._pendingWaitForFocusCount--;
-                      SimpleTest.executeSoon(function() { callback(targetWindow) });
-                  }
-              }
-          } catch (e) {
-              if (!isChildProcess) {
-                  SimpleTest.ok(false, "Exception caught in focusedOrLoaded: " + e.message +
-                                ", at: " + e.fileName + " (" + e.lineNumber + ")");
-              }
-          }
-      }
-
-      function waitForLoadAndFocusOnWindow(desiredWindow) {
-          /* If the current document is about:blank and we are not expecting a blank
-             page (or vice versa), and the document has not yet loaded, wait for the
-             page to load. A common situation is to wait for a newly opened window
-             to load its content, and we want to skip over any intermediate blank
-             pages that load. This issue is described in bug 554873. */
-          loaded = expectBlankPage ?
-                     getHref(desiredWindow) == "about:blank" :
-                     getHref(desiredWindow) != "about:blank" &&
-                         desiredWindow.document.readyState == "complete";
-          if (!loaded) {
-              info("must wait for load");
-              desiredWindow.addEventListener("load", focusedOrLoaded, true);
-          }
-
-          var childDesiredWindow = { };
-          if (isChildProcess) {
-              var fm = Components.classes["@mozilla.org/focus-manager;1"].
-                         getService(Components.interfaces.nsIFocusManager);
-              fm.getFocusedElementForWindow(desiredWindow, true, childDesiredWindow);
-              childDesiredWindow = childDesiredWindow.value;
-          } else {
-              childDesiredWindow = SpecialPowers.getFocusedElementForWindow(desiredWindow, true);
-          }
-
-          /* If this is a child frame, ensure that the frame is focused. */
-          focused = (focusedWindow() == childDesiredWindow);
-          if (!focused) {
-              info("must wait for focus");
-              childDesiredWindow.addEventListener("focus", focusedOrLoaded, true);
-              if (isChildProcess) {
-                  childDesiredWindow.focus();
-              }
-              else {
-                  SpecialPowers.focus(childDesiredWindow);
-              }
-          }
-
-          focusedOrLoaded(null);
-      }
-
-      if (isChildProcess) {
-          /* This message is used when an inner child frame must be focused. */
-          addMessageListener("WaitForFocus:FocusChild", function focusChild(msg) {
-              removeMessageListener("WaitForFocus:FocusChild", focusChild);
-              finished = false;
-              waitForLoadAndFocusOnWindow(msg.objects.child);
-          });
-      }
-
-      waitForLoadAndFocusOnWindow(targetWindow);
-    }
-
-    SimpleTest._pendingWaitForFocusCount++;
-    if (!targetWindow) {
-        targetWindow = window;
-    }
-
-    expectBlankPage = !!expectBlankPage;
-
-    // If this is a request to focus a remote child window, the request must
-    // be forwarded to the child process.
-    // XXXndeakin now sure what this issue with Components.utils is about, but
-    // browser tests require the former and plain tests require the latter.
-    var Cu = Components.utils || SpecialPowers.Cu;
-    var Ci = Components.interfaces || SpecialPowers.Ci;
-
-    var browser = null;
-    if (typeof(XULElement) != "undefined" &&
-        targetWindow instanceof XULElement &&
-        targetWindow.localName == "browser") {
-        browser = targetWindow;
-    }
-
-    var isWrapper = Cu.isCrossProcessWrapper(targetWindow);
-    if (isWrapper || (browser && browser.isRemoteBrowser)) {
-        var mustFocusSubframe = false;
-        if (isWrapper) {
-            // Look for a tabbrowser and see if targetWindow corresponds to one
-            // within that tabbrowser. If not, just return.
-            var tabBrowser = document.getElementsByTagName("tabbrowser")[0] || null;
-            browser = tabBrowser ? tabBrowser.getBrowserForContentWindow(targetWindow.top) : null;
-            if (!browser) {
-                SimpleTest.info("child process window cannot be focused");
-                return;
-            }
-
-            mustFocusSubframe = (targetWindow != targetWindow.top);
-        }
-
-        // If a subframe in a child process needs to be focused, first focus the
-        // parent frame, then send a WaitForFocus:FocusChild message to the child
-        // containing the subframe to focus.
-        browser.messageManager.addMessageListener("WaitForFocus:ChildFocused", function waitTest(msg) {
-            if (mustFocusSubframe) {
-                mustFocusSubframe = false;
-                var mm = gBrowser.selectedBrowser.messageManager;
-                mm.sendAsyncMessage("WaitForFocus:FocusChild", {}, { child: targetWindow } );
-            }
-            else {
-                browser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
-                SimpleTest._pendingWaitForFocusCount--;
-                setTimeout(callback, 0, browser ? browser.contentWindowAsCPOW : targetWindow);
-            }
-        });
-
-        // Serialize the waitForFocusInner function and run it in the child process.
-        var frameScript = "data:,(" + waitForFocusInner.toString() +
-                          ")(content, true, " + expectBlankPage + ");";
-        browser.messageManager.loadFrameScript(frameScript, true);
-        browser.focus();
-    }
-    else {
-        // Otherwise, this is an attempt to focus a single process or parent window,
-        // so pass false for isChildProcess.
-        if (browser) {
-          targetWindow = browser.contentWindow;
-        }
-
-        waitForFocusInner(targetWindow, false, expectBlankPage);
-    }
-};
-
 SimpleTest.waitForClipboard_polls = 0;
-
-/*
- * Polls the clipboard waiting for the expected value. A known value different than
- * the expected value is put on the clipboard first (and also polled for) so we
- * can be sure the value we get isn't just the expected value because it was already
- * on the clipboard. This only uses the global clipboard and only for text/unicode
- * values.
- *
- * @param aExpectedStringOrValidatorFn
- *        The string value that is expected to be on the clipboard or a
- *        validator function getting cripboard data and returning a bool.
- * @param aSetupFn
- *        A function responsible for setting the clipboard to the expected value,
- *        called after the known value setting succeeds.
- * @param aSuccessFn
- *        A function called when the expected value is found on the clipboard.
- * @param aFailureFn
- *        A function called if the expected value isn't found on the clipboard
- *        within 5s. It can also be called if the known value can't be found.
- * @param aFlavor [optional] The flavor to look for.  Defaults to "text/unicode".
- * @param aTimeout [optional]
- *        The timeout (in milliseconds) to wait for a clipboard change.
- *        Defaults to 5000.
- * @param aExpectFailure [optional]
- *        If true, fail if the clipboard contents are modified within the timeout
- *        interval defined by aTimeout.  When aExpectFailure is true, the argument
- *        aExpectedStringOrValidatorFn must be null, as it won't be used.
- *        Defaults to false.
- */
-SimpleTest.__waitForClipboardMonotonicCounter = 0;
-SimpleTest.__defineGetter__("_waitForClipboardMonotonicCounter", function () {
-  return SimpleTest.__waitForClipboardMonotonicCounter++;
-});
-SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
-                                       aSuccessFn, aFailureFn, aFlavor, aTimeout, aExpectFailure) {
-    var requestedFlavor = aFlavor || "text/unicode";
-
-    // The known value we put on the clipboard before running aSetupFn
-    var initialVal = SimpleTest._waitForClipboardMonotonicCounter +
-                     "-waitForClipboard-known-value";
-
-    var inputValidatorFn;
-    if (aExpectFailure) {
-        // If we expect failure, the aExpectedStringOrValidatorFn should be null
-        if (aExpectedStringOrValidatorFn !== null) {
-            SimpleTest.ok(false, "When expecting failure, aExpectedStringOrValidatorFn must be null");
-        }
-
-        inputValidatorFn = function(aData) {
-            return aData != initialVal;
-        };
-    } else {
-        // Build a default validator function for common string input.
-        inputValidatorFn = typeof(aExpectedStringOrValidatorFn) == "string"
-            ? function(aData) { return aData == aExpectedStringOrValidatorFn; }
-            : aExpectedStringOrValidatorFn;
-    }
-
-    var maxPolls = aTimeout ? aTimeout / 100 : 50;
-
-    // reset for the next use
-    function reset() {
-        SimpleTest.waitForClipboard_polls = 0;
-    }
-
-    var lastValue;
-    function wait(validatorFn, successFn, failureFn, flavor) {
-        if (SimpleTest.waitForClipboard_polls == 0) {
-          lastValue = undefined;
-        }
-
-        if (++SimpleTest.waitForClipboard_polls > maxPolls) {
-            // Log the failure.
-            SimpleTest.ok(aExpectFailure, "Timed out while polling clipboard for pasted data");
-            dump("Got this value: " + lastValue);
-            reset();
-            failureFn();
-            return;
-        }
-
-        var data = SpecialPowers.getClipboardData(flavor);
-
-        if (validatorFn(data)) {
-            // Don't show the success message when waiting for preExpectedVal
-            if (preExpectedVal)
-                preExpectedVal = null;
-            else
-                SimpleTest.ok(!aExpectFailure, "Clipboard has the given value");
-            reset();
-            successFn();
-        } else {
-            lastValue = data;
-            SimpleTest._originalSetTimeout.apply(window, [function() { return wait(validatorFn, successFn, failureFn, flavor); }, 100]);
-        }
-    }
-
-    // First we wait for a known value different from the expected one.
-    var preExpectedVal = initialVal;
-    SpecialPowers.clipboardCopyString(preExpectedVal);
-    wait(function(aData) { return aData  == preExpectedVal; },
-         function() {
-           // Call the original setup fn
-           aSetupFn();
-           wait(inputValidatorFn, aSuccessFn, aFailureFn, requestedFlavor);
-         }, aFailureFn, "text/unicode");
-}
 
 /**
  * Wait for a condition for a while (actually up to 3s here).
@@ -1093,15 +760,6 @@ SimpleTest.registerTimeoutFunction = function(aFunc) {
     SimpleTest._timeoutFunctions.push(aFunc);
 };
 
-SimpleTest.testInChaosMode = function() {
-    if (SimpleTest._inChaosMode) {
-      // It's already enabled for this test, don't enter twice
-      return;
-    }
-    SpecialPowers.DOMWindowUtils.enterChaosMode();
-    SimpleTest._inChaosMode = true;
-};
-
 SimpleTest.timeout = function() {
     for (let func of SimpleTest._timeoutFunctions) {
         func();
@@ -1157,17 +815,13 @@ SimpleTest.finish = function() {
 
     SimpleTest._alreadyFinished = true;
 
-    if (SimpleTest._inChaosMode) {
-        SpecialPowers.DOMWindowUtils.leaveChaosMode();
-        SimpleTest._inChaosMode = false;
-    }
-
     var afterCleanup = function() {
-        SpecialPowers.removeFiles();
-
-        if (SpecialPowers.DOMWindowUtils.isTestControllingRefreshes) {
-            SimpleTest.ok(false, "test left refresh driver under test control");
-            SpecialPowers.DOMWindowUtils.restoreNormalRefresh();
+        if ("SpecialPowers" in window) {
+            SpecialPowers.removeFiles();
+            if (SpecialPowers.DOMWindowUtils.isTestControllingRefreshes) {
+                SimpleTest.ok(false, "test left refresh driver under test control");
+                SpecialPowers.DOMWindowUtils.restoreNormalRefresh();
+            }
         }
         if (SimpleTest._expectingUncaughtException) {
             SimpleTest.ok(false, "expectUncaughtException was called but no uncaught exception was detected!");
@@ -1187,27 +841,10 @@ SimpleTest.finish = function() {
                                + "SimpleTest.waitForExplicitFinish() if you need "
                                + "it.)");
         }
-        if (SimpleTest._expectingRegisteredServiceWorker) {
-            if (!SpecialPowers.isServiceWorkerRegistered()) {
-                SimpleTest.ok(false, "This test is expected to leave a service worker registered");
-            }
-        } else {
-            if (SpecialPowers.isServiceWorkerRegistered()) {
-                SimpleTest.ok(false, "This test left a service worker registered without cleaning it up");
-            }
-        }
 
         if (parentRunner) {
             /* We're running in an iframe, and the parent has a TestRunner */
             parentRunner.testFinished(SimpleTest._tests);
-        }
-
-        if (!parentRunner || parentRunner.showTestReport) {
-            SpecialPowers.flushPermissions(function () {
-              SpecialPowers.flushPrefEnv(function() {
-                SimpleTest.showReport();
-              });
-            });
         }
     }
 
@@ -1235,142 +872,6 @@ SimpleTest.finish = function() {
     };
 
     executeCleanupFunction();
-};
-
-/**
- * Monitor console output from now until endMonitorConsole is called.
- *
- * Expect to receive all console messages described by the elements of
- * |msgs|, an array, in the order listed in |msgs|; each element is an
- * object which may have any number of the following properties:
- *   message, errorMessage, sourceName, sourceLine, category:
- *     string or regexp
- *   lineNumber, columnNumber: number
- *   isScriptError, isWarning, isException, isStrict: boolean
- * Strings, numbers, and booleans must compare equal to the named
- * property of the Nth console message.  Regexps must match.  Any
- * fields present in the message but not in the pattern object are ignored.
- *
- * In addition to the above properties, elements in |msgs| may have a |forbid|
- * boolean property.  When |forbid| is true, a failure is logged each time a
- * matching message is received.
- *
- * If |forbidUnexpectedMsgs| is true, then the messages received in the console
- * must exactly match the non-forbidden messages in |msgs|; for each received
- * message not described by the next element in |msgs|, a failure is logged.  If
- * false, then other non-forbidden messages are ignored, but all expected
- * messages must still be received.
- *
- * After endMonitorConsole is called, |continuation| will be called
- * asynchronously.  (Normally, you will want to pass |SimpleTest.finish| here.)
- *
- * It is incorrect to use this function in a test which has not called
- * SimpleTest.waitForExplicitFinish.
- */
-SimpleTest.monitorConsole = function (continuation, msgs, forbidUnexpectedMsgs) {
-  if (SimpleTest._stopOnLoad) {
-    ok(false, "Console monitoring requires use of waitForExplicitFinish.");
-  }
-
-  function msgMatches(msg, pat) {
-    for (var k in pat) {
-      if (!(k in msg)) {
-        return false;
-      }
-      if (pat[k] instanceof RegExp && typeof(msg[k]) === 'string') {
-        if (!pat[k].test(msg[k])) {
-          return false;
-        }
-      } else if (msg[k] !== pat[k]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  var forbiddenMsgs = [];
-  var i = 0;
-  while (i < msgs.length) {
-    var pat = msgs[i];
-    if ("forbid" in pat) {
-      var forbid = pat.forbid;
-      delete pat.forbid;
-      if (forbid) {
-        forbiddenMsgs.push(pat);
-        msgs.splice(i, 1);
-        continue;
-      }
-    }
-    i++;
-  }
-
-  var counter = 0;
-  var assertionLabel = msgs.toSource();
-  function listener(msg) {
-    if (msg.message === "SENTINEL" && !msg.isScriptError) {
-      is(counter, msgs.length,
-         "monitorConsole | number of messages " + assertionLabel);
-      SimpleTest.executeSoon(continuation);
-      return;
-    }
-    for (var pat of forbiddenMsgs) {
-      if (msgMatches(msg, pat)) {
-        ok(false, "monitorConsole | observed forbidden message " +
-                  JSON.stringify(msg));
-        return;
-      }
-    }
-    if (counter >= msgs.length) {
-      var str = "monitorConsole | extra message | " + JSON.stringify(msg);
-      if (forbidUnexpectedMsgs) {
-        ok(false, str);
-      } else {
-        info(str);
-      }
-      return;
-    }
-    var matches = msgMatches(msg, msgs[counter]);
-    if (forbidUnexpectedMsgs) {
-      ok(matches, "monitorConsole | [" + counter + "] must match " +
-                  JSON.stringify(msg));
-    } else {
-      info("monitorConsole | [" + counter + "] " +
-           (matches ? "matched " : "did not match ") + JSON.stringify(msg));
-    }
-    if (matches)
-      counter++;
-  }
-  SpecialPowers.registerConsoleListener(listener);
-};
-
-/**
- * Stop monitoring console output.
- */
-SimpleTest.endMonitorConsole = function () {
-  SpecialPowers.postConsoleSentinel();
-};
-
-/**
- * Run |testfn| synchronously, and monitor its console output.
- *
- * |msgs| is handled as described above for monitorConsole.
- *
- * After |testfn| returns, console monitoring will stop, and
- * |continuation| will be called asynchronously.
- */
-SimpleTest.expectConsoleMessages = function (testfn, msgs, continuation) {
-  SimpleTest.monitorConsole(continuation, msgs);
-  testfn();
-  SimpleTest.executeSoon(SimpleTest.endMonitorConsole);
-};
-
-/**
- * Wrapper around |expectConsoleMessages| for the case where the test has
- * only one |testfn| to run.
- */
-SimpleTest.runTestExpectingConsoleMessages = function(testfn, msgs) {
-  SimpleTest.waitForExplicitFinish();
-  SimpleTest.expectConsoleMessages(testfn, msgs, SimpleTest.finish);
 };
 
 /**
@@ -1415,14 +916,6 @@ SimpleTest.ignoreAllUncaughtExceptions = function (aIgnoring) {
  */
 SimpleTest.isIgnoringAllUncaughtExceptions = function () {
     return SimpleTest._ignoringAllUncaughtExceptions;
-};
-
-/**
- * Indicates to the test framework that this test is expected to leave a
- * service worker registered when it finishes.
- */
-SimpleTest.expectRegisteredServiceWorker = function () {
-    SimpleTest._expectingRegisteredServiceWorker = true;
 };
 
 /**
@@ -1676,36 +1169,6 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber,
         SimpleTest.executeSoon(SimpleTest.finish);
     }
 };
-
-// Lifted from dom/media/test/manifest.js
-// Make sure to not touch navigator in here, since we want to push prefs that
-// will affect the APIs it exposes, but the set of exposed APIs is determined
-// when Navigator.prototype is created.  So if we touch navigator before pushing
-// the prefs, the APIs it exposes will not take those prefs into account.  We
-// work around this by using a navigator object from a different global for our
-// UA string testing.
-var gAndroidSdk = null;
-function getAndroidSdk() {
-    if (gAndroidSdk === null) {
-        var iframe = document.documentElement.appendChild(document.createElement("iframe"));
-        iframe.style.display = "none";
-        var nav = iframe.contentWindow.navigator;
-        if (nav.userAgent.indexOf("Mobile") == -1 &&
-            nav.userAgent.indexOf("Tablet") == -1) {
-            gAndroidSdk = -1;
-        } else {
-            // See nsSystemInfo.cpp, the getProperty('version') returns different value
-            // on each platforms, so we need to distinguish the android platform.
-            var versionString = nav.userAgent.indexOf("Android") != -1 ?
-                                'version' : 'sdk_version';
-            gAndroidSdk = SpecialPowers.Cc['@mozilla.org/system-info;1']
-                                       .getService(SpecialPowers.Ci.nsIPropertyBag2)
-                                       .getProperty(versionString);
-        }
-        document.documentElement.removeChild(iframe);
-    }
-    return gAndroidSdk;
-}
 
 // Request complete log when using failure patterns so that failure info
 // from infra can be useful.
