@@ -31,7 +31,7 @@ function startTest(test, token)
         console.log(" bipbop.mp4 playback ended !!");
       });
       var p2 = once(v, 'playing', function onplay(e) {
-        console.log(" bipbop is playing .... ");
+        console.log(" (CLEAR) bipbop is playing .... try to draw image");
         canvasElem = document.createElement('canvas');
         document.body.appendChild(canvasElem);
         ctx2d = canvasElem.getContext('2d');
@@ -70,6 +70,7 @@ function startTest(test, token)
     CreateAndSetMediaKeys(v, test, token),
     LoadTest(test, v, token)])
   .then(values => {
+    console.log(" Start to play ENCRYPTED content !!");
     v.play();
     let initData = values[0];
     initData.map(ev => {
@@ -77,7 +78,6 @@ function startTest(test, token)
       onSessionCreated(session);
       MakeRequest(test, token, ev, session);
     });
-    console.log(" start to play ");
   })
   .then(() => {
     console.log(" finish.promise ");
