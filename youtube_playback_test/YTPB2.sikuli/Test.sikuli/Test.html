@@ -1,0 +1,281 @@
+
+<html>
+   <head>
+      <style type="text/css">
+         .sikuli-code {
+            font-size: 20px;
+            font-family: "Osaka-mono", Monospace;
+            line-height: 1.5em;
+            display:table-cell;
+            white-space: pre-wrap;       /* css-3 */
+            white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+            width: 99%;   /* remove horizontal scroll-bar when viewing in IE7 */
+         }
+         .sikuli-code img {
+            vertical-align: middle;
+            margin: 2px;
+            border: 1px solid #ccc;
+            padding: 2px;
+            -moz-border-radius: 5px;
+            -webkit-border-radius: 5px;
+            -moz-box-shadow: 1px 1px 1px gray;
+            -webkit-box-shadow: 1px 1px 2px gray;
+         }
+         .kw {
+            color: blue;
+         }
+         .skw {
+            color: rgb(63, 127, 127);
+         }
+
+         .str {
+            color: rgb(128, 0, 0);
+         }
+
+         .dig {
+            color: rgb(128, 64, 0);
+         }
+
+         .cmt {
+            color: rgb(200, 0, 200);
+         }
+
+         h2 {
+            display: inline;
+            font-weight: normal;
+         }
+
+         .info {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+            display: none;
+         }
+
+         a {
+            color: #9D2900;
+         }
+
+         body {
+            font-family: "Trebuchet MS", Arial, Sans-Serif;
+         }
+
+      </style>
+   </head>
+<body>
+<div class="info">
+<h2>Test.sikuli</h2> <a href="Test.zip">(Download this script)</a>
+</div>
+<pre class="sikuli-code">
+<span class="kw">import</span> os
+<span class="kw">import</span> logging
+<span class="kw">import</span> sys
+<span class="kw">import</span> errno
+<span class="kw">import</span> shutil
+<span class="kw">from</span> datetime <span class="kw">import</span> date
+
+
+<span class="cmt"># append system lib path</span>
+libs = [<span class="str">'C:\\Users\\user\\Projects'</span>, <span class="str">'C:\\Miniconda2\\lib\\site-packages'</span>]
+sys.path.extend(libs)
+<span class="kw">from</span> selenium.webdriver <span class="kw">import</span> Firefox
+<span class="kw">from</span> selenium.webdriver.firefox.firefox_binary <span class="kw">import</span> FirefoxBinary
+<span class="kw">from</span> selenium.common.exceptions <span class="kw">import</span> NoSuchElementException, ElementNotInteractableException
+
+<span class="kw">class</span> StreamToLogger(object):
+    <span class="kw">def</span> __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.linebuf = <span class="str">''</span>
+
+    <span class="kw">def</span> write(self, buf):
+        <span class="kw">for</span> line <span class="kw">in</span> buf.rstrip().splitlines():
+            self.logger.log(self.level, line.rstrip())
+
+
+<span class="kw">def</span> makeSureResultFolderExist(result_date):
+    desktop_path = os.path.join(os.environ[<span class="str">"HOMEPATH"</span>], <span class="str">'Desktop'</span>)
+    today = date.today()
+    result_folder = os.path.join(desktop_path, <span class="str">'sikuli_result'</span>, result_date.isoformat())
+    <span class="kw">if</span> <span class="kw">not</span> os.path.exists(result_folder):
+        <span class="kw">try</span>:
+            os.makedirs(result_folder)
+        <span class="kw">except</span> OSError <span class="kw">as</span> exc:
+            <span class="kw">if</span> exc.errno != errno.EEXIST:
+                <span class="kw">raise</span>
+            <span class="kw">pass</span>
+    <span class="kw">return</span> result_folder
+
+today = date.today()
+final_folder = makeSureResultFolderExist(today)
+
+logging.basicConfig(level=logging.DEBUG, format=<span class="str">'%(asctime)s:%(levelname)s:%(name)s:%(message)s'</span>,
+    filename=os.path.join(final_folder, <span class="str">"youtube_test.log"</span>),
+    filemode=<span class="str">'a'</span>)
+
+stdout_logger = logging.getLogger(<span class="str">'STDOUT'</span>)
+sl = StreamToLogger(stdout_logger, logging.INFO)
+sys.stdout = sl
+
+
+
+<span class="kw">def</span> close_FFs():
+    <span class="kw">try</span>:
+        App.close(<span class="str">"Nightly"</span>)
+    <span class="kw">except</span>:
+        <span class="kw">pass</span>
+
+<span class="kw">def</span> launch_nightly():
+    App.open(<span class="str">"C:\\Program Files\\Nightly\\firefox.exe"</span>)
+    makeSureNewTab()
+
+<span class="kw">def</span> makeSureNewTab():
+    count = <span class="dig">5</span>
+    <span class="kw">while</span> count &gt; <span class="dig">0</span>:
+        <span class="kw">try</span>:
+            <span class="skw">wait</span>(<img src="1497861542731.png" />, <span class="dig">5</span>)
+            <span class="kw">break</span>
+        <span class="kw">except</span>:
+            <span class="kw">print</span>(<span class="str">' Wait for awesome bar, 1st failure, create a new tab.'</span>)
+            <span class="skw">click</span>(<img src="1496312389216.png" />)
+        count -= <span class="dig">1</span>
+    <span class="kw">try</span>:
+        <span class="skw">wait</span>(<img src="1497861542731.png" />, <span class="dig">5</span>)
+    <span class="kw">except</span>:
+        <span class="kw">print</span>(<span class="str">' Wait for awesome bar, 2nd failure.'</span>)
+
+<span class="kw">def</span> passThroughAd():
+    <span class="kw">global</span> isEng
+    <span class="kw">try</span>:
+        <span class="kw">print</span>(<span class="str">"waiting to find skip ad (cht)"</span>)
+        <span class="kw">if</span> video_playback_region.<span class="skw">wait</span>(<img src="1497345606141.png" />, <span class="dig">8</span>):
+            <span class="kw">print</span>(<span class="str">"There's a skip-Ad button (cht) ! click it"</span>)
+            isEng = False
+            <span class="skw">click</span>(<img src="1497345606141.png" />)
+    <span class="kw">except</span>:
+        <span class="kw">print</span>(<span class="str">" CAN NOT FIND !!"</span>)
+        <span class="kw">pass</span>
+    <span class="kw">try</span>:
+        <span class="kw">print</span>(<span class="str">"waiting to find skip ad (eng)"</span>)
+        <span class="kw">if</span> video_playback_region.<span class="skw">wait</span>(<img src="1497861434126.png" />, <span class="dig">8</span>):
+            <span class="kw">print</span>(<span class="str">"There's a skip-Ad button (eng) ! click it"</span>)
+            isEng = True
+            <span class="skw">click</span>(<img src="1497861434126.png" />)
+    <span class="kw">except</span>:
+        <span class="kw">print</span>(<span class="str">" CAN NOT FIND !!"</span>)
+        <span class="kw">pass</span>
+
+
+<span class="kw">def</span> main():
+    <span class="kw">try</span>:
+        App.close(<span class="str">"Nightly"</span>)
+    <span class="kw">except</span>:
+        <span class="kw">pass</span>
+
+    binary = FirefoxBinary(<span class="str">"C:\\Program Files\\Nightly\\firefox.exe"</span>)
+    firefox = Firefox(firefox_binary=binary)
+    <span class="kw">print</span>(<span class="str">"nightly launching..."</span>)
+    <span class="skw">sleep</span>(<span class="dig">5</span>)
+    makeSureNewTab()
+    <span class="skw">sleep</span>(<span class="dig">5</span>)
+
+    <span class="cmt"># passThroughAd()</span>
+
+
+    v_link = <span class="str">"https://www.youtube.com/watch?v=riZBFSEDTWQ"</span>
+    isEng = True
+    video_playback_region = Region(<span class="dig">104</span>,<span class="dig">138</span>,<span class="dig">638</span>,<span class="dig">356</span>)
+
+    video_center =  video_playback_region.getCenter()
+    <span class="cmt"># if not exists("1496306757186.png"):</span>
+    <span class="cmt">#     makeSureNewTab()</span>
+
+    <span class="cmt"># click("1497861631105.png")</span>
+
+    <span class="cmt"># type(v_link)</span>
+    <span class="cmt"># type(Key.ENTER)</span>
+    firefox.get(v_link)
+
+    start_playback_counter = <span class="dig">100</span>
+    start_playback = False
+    <span class="cmt"># while start_playback_counter &gt; 0:</span>
+    <span class="cmt">#     passThroughAd() </span>
+    <span class="cmt">#     hover(video_center)</span>
+    <span class="cmt">#     if exists("1497923531328.png"):</span>
+    <span class="cmt">#         print("Good, it seems playing")</span>
+    <span class="cmt">#         rightClick(video_center)</span>
+    <span class="cmt">#         wait(0.5)</span>
+    <span class="cmt">#         offset_x = 50</span>
+    <span class="cmt">#         offset_y = 210 if isEng else 270</span>
+    <span class="cmt">#         print(' offset : {}'.format(offset_y))</span>
+    <span class="cmt">#         click(Location(video_center.getX()+ offset_x, video_center.getY() + offset_y))</span>
+    <span class="cmt">#         start_playback = True</span>
+    <span class="cmt">#         break</span>
+    <span class="cmt">#     sleep(0.1)</span>
+    <span class="cmt">#     start_playback_counter -= 1</span>
+
+    <span class="kw">while</span> True:
+        <span class="kw">print</span>(<span class="str">"wait for pre-skip text to make sure page loaded"</span>)
+        <span class="skw">sleep</span>(<span class="dig">1</span>)
+        <span class="kw">try</span>:
+            <span class="kw">if</span> firefox.find_element_by_class_name(<span class="str">'videoAdUiPreSkipText'</span>):
+                <span class="skw">sleep</span>(<span class="dig">5</span>)
+                <span class="kw">break</span>
+        <span class="kw">except</span> NoSuchElementException <span class="kw">as</span> e:
+            <span class="kw">pass</span>
+    <span class="kw">try</span>:
+        <span class="kw">print</span>(<span class="str">"try to click skip ad"</span>)
+        ad = firefox.find_element_by_class_name(<span class="str">"videoAdUiSkipButton"</span>)
+        <span class="kw">if</span> ad:
+            <span class="kw">print</span>(<span class="str">"ad found, click skip ad"</span>)
+            ad.<span class="skw">click</span>()
+    <span class="kw">except</span> NoSuchElementException <span class="kw">as</span> e:
+        <span class="kw">print</span>(<span class="str">"No skip ad, process to target video"</span>)
+    <span class="kw">except</span> ElementNotInteractableException <span class="kw">as</span> e:
+        <span class="kw">print</span>(<span class="str">"Can't process click; element not interactable"</span>)
+
+    <span class="kw">print</span>(<span class="str">"right click for statistics"</span>)
+    <span class="skw">wait</span>(<span class="dig">0.5</span>)
+    <span class="skw">rightClick</span>(video_center)
+    <span class="skw">wait</span>(<span class="dig">0.5</span>)
+    offset_x = <span class="dig">50</span>
+    offset_y = <span class="dig">270</span>
+    <span class="skw">click</span>(Location(video_center.getX()+ offset_x, video_center.getY() + offset_y))
+
+    playback_done = False
+    <span class="cmt"># sleep(300)</span>
+    <span class="cmt"># click("1502414988106.png")</span>
+    <span class="kw">print</span>(<span class="str">"start to fetch progress bar"</span>)
+    progress_bar = firefox.find_element_by_class_name(<span class="str">"ytp-progress-bar"</span>)
+    video_max = int(progress_bar.get_attribute(<span class="str">"aria-valuemax"</span>))
+    <span class="kw">while</span> True:
+        running_sec = int(progress_bar.get_attribute(<span class="str">"aria-valuenow"</span>))
+        <span class="kw">if</span> running_sec + <span class="dig">5</span> &gt; video_max:
+            <span class="kw">print</span>(<span class="str">'Playback seems to the end !! Great !'</span>)
+            <span class="kw">break</span>
+        <span class="skw">sleep</span>(<span class="dig">1</span>)
+        <span class="kw">print</span>(<span class="str">"seconds on progress bar: {}"</span>.format(running_sec))
+
+        <span class="cmt"># m = video_playback_region.wait("1502415019705.png", 800)</span>
+        <span class="cmt"># if m is not None:</span>
+        <span class="cmt">#     print('Playback seems to the end !! Great !')</span>
+        <span class="cmt">#     break</span>
+    <span class="cmt"># close_FFs()</span>
+    firefox.quit()
+    playback_done = True
+    result = <span class="str">'YT link = {}, Playback Start = {}, Playback End = {}'</span>.format(v_link, start_playback, playback_done)
+
+    filename = os.path.join(final_folder, <span class="str">'YT_Playback.txt'</span>)
+    f = open(filename, <span class="str">'w'</span>)
+    f.write(result)
+    f.close()
+
+
+<span class="kw">if</span> __name__ == <span class="str">'__main__'</span>:
+    main()
+</pre>
+</body>
+</html>

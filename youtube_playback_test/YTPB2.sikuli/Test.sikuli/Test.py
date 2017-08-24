@@ -6,19 +6,12 @@ import shutil
 from datetime import date
 
 
-Settings.DebugLogs = False
-Settings.InfoLogs = True
-Debug.off()
-
 # append system lib path
 libs = ['C:\\Users\\user\\Projects', 'C:\\Miniconda2\\lib\\site-packages']
 sys.path.extend(libs)
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.common.exceptions import NoSuchElementException, ElementNotInteractableException
-from selenium.webdriver.remote.remote_connection import LOGGER
-LOGGER.setLevel(logging.WARNING)
-
 
 class StreamToLogger(object):
     def __init__(self, logger, level=logging.INFO):
@@ -105,32 +98,18 @@ def passThroughAd():
 
 
 def main():
-
-    def seek(driver, percent=50):
-        from selenium.webdriver.common.action_chains import ActionChains
-        if not driver or not isinstance(percent, int):
-            print("input error, no driver instance or wrong percentage argument")
-            return False
-        progress_bar = driver.find_element_by_class_name("ytp-progress-bar")
-        print("progress bar found")
-        _seek = ActionChains(driver).move_to_element_with_offset(
-                progress_bar,
-                progress_bar.size['width'] * percent / 100,
-                progress_bar.size['height'] / 2).click()
-        print("seek action built")
-        _seek.perform()
-        print("seek action performed")
-
-        return True
-    
-    binary = FirefoxBinary("C:\\Program Files\\Nightly\\firefox.exe")
     try:
-        firefox = Firefox(firefox_binary=binary)
-    except OSError:
-        print(sys.exc_info())
+        App.close("Nightly")
+    except:
+        pass
+
+    binary = FirefoxBinary("C:\\Program Files\\Nightly\\firefox.exe")
+    firefox = Firefox(firefox_binary=binary)
     print("nightly launching...")
     sleep(5)
-     
+    makeSureNewTab()
+    sleep(5)
+    
     # passThroughAd()
 
 
@@ -139,12 +118,34 @@ def main():
     video_playback_region = Region(104,138,638,356)
 
     video_center =  video_playback_region.getCenter()
+    # if not exists("1496306757186.png"):
+    #     makeSureNewTab()
+ 
+    # click("1497861631105.png")
+
+    # type(v_link)
+    # type(Key.ENTER)
     firefox.get(v_link)
     
     start_playback_counter = 100 
     start_playback = False
+    # while start_playback_counter > 0:
+    #     passThroughAd() 
+    #     hover(video_center)
+    #     if exists("1497923531328.png"):
+    #         print("Good, it seems playing")
+    #         rightClick(video_center)
+    #         wait(0.5)
+    #         offset_x = 50
+    #         offset_y = 210 if isEng else 270
+    #         print(' offset : {}'.format(offset_y))
+    #         click(Location(video_center.getX()+ offset_x, video_center.getY() + offset_y))
+    #         start_playback = True
+    #         break
+    #     sleep(0.1)
+    #     start_playback_counter -= 1
 
-    for _ in range(5):
+    while True:
         print("wait for pre-skip text to make sure page loaded")
         sleep(1)
         try:
@@ -169,20 +170,12 @@ def main():
     rightClick(video_center)
     wait(0.5)
     offset_x = 50
-    offset_y = 210 
+    offset_y = 270 
     click(Location(video_center.getX()+ offset_x, video_center.getY() + offset_y))
 
     playback_done = False
-
-    # pause for 5 secound here
-    play = firefox.find_element_by_class_name("ytp-play-button")
-    play.click()
-    wait(5)
-    play.click()
-    wait(2)
-    seek(firefox, 80)
-    wait(2)
-    
+    # sleep(300)
+    # click("1502414988106.png")
     print("start to fetch progress bar")
     progress_bar = firefox.find_element_by_class_name("ytp-progress-bar")
     video_max = int(progress_bar.get_attribute("aria-valuemax"))
@@ -192,7 +185,13 @@ def main():
             print('Playback seems to the end !! Great !')
             break
         sleep(1)
+        print("seconds on progress bar: {}".format(running_sec))
         
+        # m = video_playback_region.wait("1502415019705.png", 800)
+        # if m is not None:
+        #     print('Playback seems to the end !! Great !')
+        #     break
+    # close_FFs()
     firefox.quit()
     playback_done = True
     result = 'YT link = {}, Playback Start = {}, Playback End = {}'.format(v_link, start_playback, playback_done)
